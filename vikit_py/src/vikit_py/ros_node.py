@@ -1,23 +1,24 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
-import os
+import subprocess
 
 class RosNode:
     def __init__(self, package, executable):
         self._package = package
         self._executable = executable
-        self._param_string = ''
+        self._parameters = []
     
     def add_parameters(self, namespace, parameter_dictionary):
         for key in parameter_dictionary.keys():
             if type(parameter_dictionary[key]) is dict:
-                self.add_parameters(namespace+key+'/', parameter_dictionary[key])
+                self.add_parameters(namespace+key+'.', parameter_dictionary[key])
             else:
-                self._param_string += ' _'+namespace+key+':='+str(parameter_dictionary[key])
+                self._parameters.extend(['-p', namespace+key+':='+str(parameter_dictionary[key])])
         
     def run(self, parameter_dictionary, namespace=''):
+        self._parameters = []
         self.add_parameters(namespace, parameter_dictionary)
-        print('Starting ROS node with parameters: '+self._param_string)
+        print('Starting ROS2 node with parameters: '+' '.join(self._parameters))
         
-        os.system('rosrun ' + self._package + ' ' + self._executable + ' ' + self._param_string)
-        print('ROS node finished processing.')
+        subprocess.run(['ros2', 'run', self._package, self._executable, '--ros-args'] + self._parameters, check=True)
+        print('ROS2 node finished processing.')

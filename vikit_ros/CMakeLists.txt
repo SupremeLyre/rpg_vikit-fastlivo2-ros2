@@ -1,52 +1,91 @@
-SET(PROJECT_NAME vikit_ros)
-PROJECT(${PROJECT_NAME})
-CMAKE_MINIMUM_REQUIRED (VERSION 2.8.3)
-SET(CMAKE_BUILD_TYPE Release) # Release, RelWithDebInfo
-SET(CMAKE_VERBOSE_MAKEFILE OFF)
+cmake_minimum_required(VERSION 3.8)
+project(vikit_ros)
 
-# Set build flags
-SET(CMAKE_CXX_FLAGS "-Wall -D_LINUX -D_REENTRANT -march=native -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unknown-pragmas")
-SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -O0 -g")
-IF(CMAKE_COMPILER_IS_GNUCC)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-ELSE()
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-ENDIF()
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
-# Add catkin and required ROS packages
-FIND_PACKAGE(catkin REQUIRED COMPONENTS roscpp vikit_common visualization_msgs tf cmake_modules)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Add plain cmake packages 
-FIND_PACKAGE(OpenCV REQUIRED)
+add_compile_options(
+  -Wall
+  -D_LINUX
+  -D_REENTRANT
+  -Wno-unused-variable
+  -Wno-unused-but-set-variable
+  -Wno-unknown-pragmas
+)
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
+  add_compile_options(-mmmx -msse -msse2 -msse3 -mssse3)
+else()
+  add_compile_options(-march=armv8-a)
+endif()
+
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(vikit_common REQUIRED)
+
+find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
-FIND_PACKAGE(Sophus REQUIRED)
+find_package(Sophus REQUIRED)
 
-# Include dirs
-INCLUDE_DIRECTORIES(
-  include
-  ${EIGEN3_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
-  ${Sophus_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
-)
-
-# Describe catkin Project
-catkin_package(
-    DEPENDS EIGEN3 OpenCV Sophus vikit_common
-    CATKIN_DEPENDS roscpp visualization_msgs tf 
-    INCLUDE_DIRS include
-    LIBRARIES ${PROJECT_NAME}
-)
-
-# Set Sourcefiles
-LIST(APPEND SOURCEFILES 
+add_library(${PROJECT_NAME} SHARED
   src/output_helper.cpp
 )
-
-# Create vikit library
-ADD_LIBRARY(${PROJECT_NAME} SHARED ${SOURCEFILES})
-TARGET_LINK_LIBRARIES(
-  ${PROJECT_NAME}
-  ${OpenCV_LIBS}
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    ${EIGEN3_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
+    ${Sophus_INCLUDE_DIRS}
+)
+ament_target_dependencies(${PROJECT_NAME}
+  rclcpp
+  geometry_msgs
+  visualization_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  vikit_common
+)
+target_link_libraries(${PROJECT_NAME}
+  ${OpenCV_LIBRARIES}
   ${Sophus_LIBRARIES}
-  ${catkin_LIBRARIES})
+)
+
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_export_dependencies(
+  rclcpp
+  geometry_msgs
+  visualization_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  vikit_common
+  OpenCV
+  Eigen3
+  Sophus
+)
+ament_package()

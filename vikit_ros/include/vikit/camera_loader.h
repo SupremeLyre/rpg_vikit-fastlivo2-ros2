@@ -21,7 +21,7 @@ namespace vk {
 namespace camera_loader {
 
 /// Load from ROS Namespace
-bool loadFromRosNs(const std::string& ns, vk::AbstractCamera*& cam)
+inline bool loadFromRosNs(const std::string& ns, vk::AbstractCamera*& cam)
 {
   bool res = true;
   std::string cam_model(getParam<std::string>(ns+"/cam_model"));
@@ -90,13 +90,19 @@ bool loadFromRosNs(const std::string& ns, vk::AbstractCamera*& cam)
   }
   else
   {
-    cam = NULL;
+    cam = nullptr;
     res = false;
   }
   return res;
 }
 
-bool loadFromRosNs(const std::string& ns, std::vector<vk::AbstractCamera*>& cam_list)
+inline bool loadFromRosNs(const rclcpp::Node::SharedPtr& node, const std::string& ns, vk::AbstractCamera*& cam)
+{
+  setParamNode(node);
+  return loadFromRosNs(ns, cam);
+}
+
+inline bool loadFromRosNs(const std::string& ns, std::vector<vk::AbstractCamera*>& cam_list)
 {
   bool res = true;
   std::string cam_model(getParam<std::string>(ns+"/cam_model"));
@@ -146,6 +152,12 @@ bool loadFromRosNs(const std::string& ns, std::vector<vk::AbstractCamera*>& cam_
   }
   
   return res;
+}
+
+inline bool loadFromRosNs(const rclcpp::Node::SharedPtr& node, const std::string& ns, std::vector<vk::AbstractCamera*>& cam_list)
+{
+  setParamNode(node);
+  return loadFromRosNs(ns, cam_list);
 }
 
 } // namespace camera_loader
